@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configure multer for file uploads (using memory storage for Vercel)
+// Configure multer for file uploads using memory storage (works on Vercel)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -93,11 +93,14 @@ const trie = new Trie();
 
 // File upload endpoint
 app.post('/api/upload', upload.single('wordfile'), (req, res) => {
+  console.log("Upload request received");
+  
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
   
   try {
+    // Use buffer instead of file system
     const data = req.file.buffer.toString('utf8');
     const lines = data.split(/\r?\n/);
     
@@ -116,6 +119,8 @@ app.post('/api/upload', upload.single('wordfile'), (req, res) => {
         invalidCount++;
       }
     });
+    
+    // No need to clean up files since we're using memory storage
     
     res.json({
       success: true,
