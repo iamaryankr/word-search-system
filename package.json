@@ -1,20 +1,30 @@
 {
   "name": "word-search-system",
   "version": "1.0.0",
-  "description": "",
+  "description": "Word Search System using Express.js",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/iamaryankr/word-search-system.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["express", "word-search", "vercel"],
+  "author": "iamaryankr",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/iamaryankr/word-search-system/issues"
   },
-  "homepage": "https://github.com/iamaryankr/word-search-system#readme"
+  "homepage": "https://github.com/iamaryankr/word-search-system#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
 }
