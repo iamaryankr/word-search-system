@@ -1,0 +1,8 @@
+// Trie Operations (100k words)
+insert: O(L) // L = word length (≤50)
+search: O(L)
+autocomplete: O(P + M log M) // P = prefix length, M = matches
+
+// Memory Usage
+Average: ~400KB per 10k words
+Max: ~4MB for 100k words
