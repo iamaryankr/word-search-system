@@ -1,30 +1,15 @@
 const express = require('express');
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Basic middleware
 app.use(express.json());
 app.use(express.static('public'));
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function(req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname);
-  }
-});
-
-// Create uploads directory if it doesn't exist
-if (!fs.existsSync('uploads')) {
-  fs.mkdirSync('uploads');
-}
-
+// Configure multer for file uploads (using memory storage for Vercel)
+const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // Trie implementation
@@ -108,15 +93,12 @@ const trie = new Trie();
 
 // File upload endpoint
 app.post('/api/upload', upload.single('wordfile'), (req, res) => {
-  console.log("Upload request received");
-  console.log("Request file:", req.file);
-  
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
   
   try {
-    const data = fs.readFileSync(req.file.path, 'utf8');
+    const data = req.file.buffer.toString('utf8');
     const lines = data.split(/\r?\n/);
     
     // Clear previous trie
@@ -134,9 +116,6 @@ app.post('/api/upload', upload.single('wordfile'), (req, res) => {
         invalidCount++;
       }
     });
-    
-    // Clean up the uploaded file
-    fs.unlinkSync(req.file.path);
     
     res.json({
       success: true,
@@ -190,6 +169,13 @@ app.get('/api/rank', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+// Export the Express API for Vercel
+module.exports = app;
