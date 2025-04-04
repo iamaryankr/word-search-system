@@ -6,7 +6,12 @@ const app = express();
 
 // Basic middleware
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../public')));
+
+// Serve index.html for the root route
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public', 'index.html'));
+});
 
 // Configure multer for file uploads using memory storage (works on Vercel)
 const storage = multer.memoryStorage();
@@ -120,8 +125,6 @@ app.post('/api/upload', upload.single('wordfile'), (req, res) => {
       }
     });
     
-    // No need to clean up files since we're using memory storage
-    
     res.json({
       success: true,
       message: `Loaded ${validCount} valid words`,
@@ -172,6 +175,11 @@ app.get('/api/rank', (req, res) => {
   } else {
     res.status(404).json({ error: 'Word not found' });
   }
+});
+
+// Handle all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
 // For local development
