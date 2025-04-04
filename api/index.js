@@ -13,11 +13,14 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
-// Configure multer with memory storage and size limits
+// Configure multer with memory storage and explicit limits
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+  limits: { 
+    fileSize: 2 * 1024 * 1024, // 2MB limit
+    files: 1
+  }
 });
 
 // Trie implementation
@@ -100,49 +103,64 @@ class Trie {
 const trie = new Trie();
 
 // File upload endpoint with error handling
-app.post('/api/upload', (req, res) => {
-  // Use single upload with error handling
-  upload.single('wordfile')(req, res, function(err) {
-    if (err) {
-      console.error("Multer error:", err);
-      return res.status(400).json({ error: err.message });
-    }
+app.post('/api/upload', async (req, res) => {
+  try {
+    // Handle the upload with proper error handling
+    const uploadMiddleware = upload.single('wordfile');
     
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
-    }
-    
-    try {
-      // Process the file from buffer
-      const data = req.file.buffer.toString('utf8');
-      const lines = data.split(/\r?\n/);
+    uploadMiddleware(req, res, async function(err) {
+      if (err) {
+        console.error("Upload error:", err.message);
+        return res.status(400).json({ error: `Upload error: ${err.message}` });
+      }
       
-      // Clear previous trie
-      trie.root = new TrieNode();
+      if (!req.file || !req.file.buffer) {
+        return res.status(400).json({ error: 'No file uploaded or empty file' });
+      }
       
-      let validCount = 0;
-      let invalidCount = 0;
-      
-      lines.forEach(line => {
-        const word = line.trim().toLowerCase();
-        if (word && /^[a-z]{2,50}$/.test(word)) {
-          trie.insert(word);
-          validCount++;
-        } else if (word) {
-          invalidCount++;
+      try {
+        // Get file content as string
+        const fileContent = req.file.buffer.toString('utf8');
+        
+        if (!fileContent || fileContent.length === 0) {
+          return res.status(400).json({ error: 'Empty file content' });
         }
-      });
-      
-      res.json({
-        success: true,
-        message: `Loaded ${validCount} valid words`,
-        invalidCount: invalidCount
-      });
-    } catch (error) {
-      console.error("Error processing file:", error);
-      res.status(500).json({ error: 'Error processing file' });
-    }
-  });
+        
+        // Process the file
+        const lines = fileContent.split(/\r?\n/);
+        
+        // Reset the trie
+        trie.root = new TrieNode();
+        
+        let validCount = 0;
+        let invalidCount = 0;
+        
+        // Process each line
+        for (const line of lines) {
+          const word = line.trim().toLowerCase();
+          if (word && /^[a-z]{2,50}$/.test(word)) {
+            trie.insert(word);
+            validCount++;
+          } else if (word) {
+            invalidCount++;
+          }
+        }
+        
+        // Send success response
+        return res.status(200).json({
+          success: true,
+          message: `Loaded ${validCount} valid words`,
+          invalidCount: invalidCount
+        });
+      } catch (error) {
+        console.error("File processing error:", error);
+        return res.status(500).json({ error: `Processing error: ${error.message}` });
+      }
+    });
+  } catch (outerError) {
+    console.error("Outer error:", outerError);
+    return res.status(500).json({ error: `Server error: ${outerError.message}` });
+  }
 });
 
 // Auto-complete endpoint
