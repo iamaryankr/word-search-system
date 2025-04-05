@@ -15,6 +15,7 @@ app.get('/', (req, res) => {
 
 // Configure multer with memory storage and explicit limits
 const storage = multer.memoryStorage();
+
 const upload = multer({ 
   storage: storage,
   limits: { 
@@ -23,7 +24,7 @@ const upload = multer({
   }
 });
 
-// Trie implementation
+// Making the data-structure TRIE
 class TrieNode {
   constructor() {
     this.children = {};
