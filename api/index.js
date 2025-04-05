@@ -4,18 +4,19 @@ const path = require('path');
 
 const app = express();
 
-// Basic middleware
+// Basic middlewares for our app and for hosting the static files
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Serve index.html for the root route
+// This if for routing index.html to the root path
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
 
-// Configure multer with memory storage and explicit limits
+//Now multer works with memory storage
 const storage = multer.memoryStorage();
 
+// Setting up multer for file upload
 const upload = multer({ 
   storage: storage,
   limits: { 
@@ -24,20 +25,22 @@ const upload = multer({
   }
 });
 
-// Making the data-structure TRIE
+// Making the Data-Structure TRIE for our optimal insertion and search
 class TrieNode {
   constructor() {
     this.children = {};
     this.isEndOfWord = false;
     this.rank = 0;
   }
-}
+};
 
+
+//Trie Data-Structure for our word search system application
 class Trie {
   constructor() {
     this.root = new TrieNode();
   }
-  
+  //inserts a new word in trie (word without space)
   insert(word) {
     let node = this.root;
     for (let char of word) {
@@ -48,7 +51,7 @@ class Trie {
     }
     node.isEndOfWord = true;
   }
-  
+  //search a word in trie (exists or not)
   search(word) {
     let node = this.root;
     for (let char of word) {
@@ -58,12 +61,12 @@ class Trie {
       node = node.children[char];
     }
     if (node.isEndOfWord) {
-      node.rank++;
+      node.rank ++;
       return true;
     }
     return false;
   }
-  
+  //gets the rank of the word if it exists in the trie else returns 0
   getRank(word) {
     let node = this.root;
     for (let char of word) {
@@ -74,7 +77,9 @@ class Trie {
     }
     return node.isEndOfWord ? node.rank : 0;
   }
-  
+  //main function for auto-complete
+  //runs DFS on the trie to get all the words with the given prefix
+  //returns an array of words that start with the given prefix
   autoComplete(prefix) {
     let node = this.root;
     for (let char of prefix) {
@@ -89,24 +94,27 @@ class Trie {
     return results;
   }
   
+  //dfs for the word finding for auto-complete
   _dfs(node, prefix, results) {
-    if (node.isEndOfWord) {
+    if (node.isEndOfWord) { //backtrack to the end of the word
       results.push(prefix);
     }
     
     for (let char in node.children) {
-      this._dfs(node.children[char], prefix + char, results);
+      prefix += char; 
+      this._dfs(node.children[char], prefix, results);
     }
   }
-}
+};
 
-// Global trie instance
+// Making a global stance of the Trie
 const trie = new Trie();
 
-// File upload endpoint with error handling
+// 1st endpoint
+// Upload endpoint for word file 
 app.post('/api/upload', async (req, res) => {
   try {
-    // Handle the upload with proper error handling
+    // getting use of upload from multer
     const uploadMiddleware = upload.single('wordfile');
     
     uploadMiddleware(req, res, async function(err) {
@@ -127,7 +135,6 @@ app.post('/api/upload', async (req, res) => {
           return res.status(400).json({ error: 'Empty file content' });
         }
         
-        // Process the file
         const lines = fileContent.split(/\r?\n/);
         
         // Reset the trie
@@ -164,9 +171,10 @@ app.post('/api/upload', async (req, res) => {
   }
 });
 
-// Auto-complete endpoint
+// 2nd endpoint
+// Autocomplete endpoint
 app.get('/api/autocomplete', (req, res) => {
-  const prefix = (req.query.prefix || '').toLowerCase().substring(0, 20);
+  const prefix = (req.query.prefix || '').toLowerCase().substring(0, 20); //atmax 20 words
   if (!/^[a-z]{1,20}$/.test(prefix)) {
     return res.status(400).json({ error: 'Invalid prefix' });
   }
@@ -175,6 +183,7 @@ app.get('/api/autocomplete', (req, res) => {
   res.json({ suggestions });
 });
 
+// 3rd endpoint
 // Search endpoint
 app.get('/api/search', (req, res) => {
   const word = (req.query.word || '').toLowerCase().substring(0, 50);
@@ -190,6 +199,7 @@ app.get('/api/search', (req, res) => {
   });
 });
 
+// 4th endpoint
 // Rank endpoint
 app.get('/api/rank', (req, res) => {
   const word = (req.query.word || '').toLowerCase().substring(0, 50);
@@ -205,7 +215,7 @@ app.get('/api/rank', (req, res) => {
   }
 });
 
-// Handle all other routes
+// Handling all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public', 'index.html'));
 });
